@@ -1,96 +1,109 @@
-# Workspace
+# BreakBridge
 
 ## Overview
+BreakBridge is a live break scheduling and staffing decision platform for multi-tenant childcare operations. Full-stack NestJS + Prisma backend with a React/Vite operational dashboard.
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+## Architecture
 
-## Stack
+### Stack
+- **Backend**: NestJS + Prisma (PostgreSQL) — port 8080
+- **Frontend**: React/Vite dashboard — port from $PORT env var (proxied at `/`)
+- **Auth**: Supabase JWT (passthrough in dev when `SUPABASE_AUTH_ENFORCE != "true"`)
+- **Package manager**: pnpm (monorepo workspace)
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
-
-## Structure
-
-```text
-artifacts-monorepo/
-├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
-├── lib/                    # Shared libraries
-│   ├── api-spec/           # OpenAPI spec + Orval codegen config
-│   ├── api-client-react/   # Generated React Query hooks
-│   ├── api-zod/            # Generated Zod schemas from OpenAPI
-│   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
+### Monorepo Layout
+```
+lib/prisma/           — @workspace/prisma: PrismaClient + generated types + schema
+artifacts/api-server/ — @workspace/api-server: NestJS application (port 8080)
+artifacts/dashboard/  — @workspace/dashboard: React/Vite operational dashboard
+artifacts/mockup-sandbox/ — canvas component previews
 ```
 
-## TypeScript & Composite Projects
+### Database (Prisma Schema)
+Multi-tenant hierarchy: Organization → Location → Classroom → Staff
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
+Models:
+- Organization, Location, Classroom (NOT "Room"), Staff
+- AttendanceSnapshot + AttendanceEntry
+- BreakPlan + BreakAssignment
+- CoverageAssignment
+- RuleConfig, ExclusionRule
+- Role, UserRole, User, UserLocationAccess
+- AuditEvent, ExportArtifact
 
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
+### NestJS Modules (19 total)
+| Module | Controller path |
+|---|---|
+| health | /api/healthz |
+| auth | /api/auth |
+| organizations | /api/organizations |
+| locations | /api/locations |
+| classrooms | /api/classrooms |
+| staff | /api/staff |
+| users | /api/users |
+| roles | /api/roles |
+| attendance | /api/attendance |
+| attendance-imports | /api/attendance-imports |
+| breaks | /api/break-plans |
+| coverage | /api/coverage-assignments |
+| rule-engine | /api/rule-engine |
+| audit | /api/audit-events |
+| integrations | /api/integrations |
+| exports | /api/exports |
+| jobs | /api/jobs |
+| admin | /api/admin |
 
-## Root Scripts
+### System Roles (5 seeded)
+`platform_admin`, `org_admin`, `location_admin`, `supervisor`, `viewer`
 
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
-- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
+### Seed Data
+- 1 org: BrightStart Early Learning
+- 2 locations: Maple Grove Center (primary, with all data), Cedar Ridge Center
+- 6 classrooms (Maple Grove): Infant, Toddler, Twos, Threes, Pre-K A, Pre-K B
+- 12 fictional staff members (no real names); 2 BREAKERs: Skyler Fontaine, Hayden Merritt
+- 5 system roles
 
-## Packages
+## Frontend Dashboard Pages
+- `/` — Staffing Board: live ratio cards, classroom grid (GREEN/FRAGILE/MAXED), staff duty list with BREAKER badge, KPI tiles
+- `/planner` — Break Planner: auto-propose algorithm, assignment table (time, staff, classroom, covered-by, status), CSV export
+- `/import` — Tadpoles Import: paste raw clipboard text, parse and create attendance snapshot with result preview
+- `/settings` — Admin Settings: rule config (break cutoff, duration, min gap, max breaks per breaker)
 
-### `artifacts/api-server` (`@workspace/api-server`)
+### Frontend Technical Details
+- React Query with 30-second polling on classrooms and staff
+- LocationProvider context drives all queries
+- Vite proxy forwards `/api` → `http://localhost:8080`
+- Dark-mode operational UI with Tailwind CSS
 
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
+## Canonical URL Paths
+- `/api/break-plans`
+- `/api/coverage-assignments`
+- `/api/audit-events`
+- `/api/rule-engine`
 
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
+## Entity Naming Rules
+- **Classroom** everywhere — never "Room"
+- No real employee names in seed data
 
-### `lib/db` (`@workspace/db`)
+## Dev Setup
+```bash
+pnpm install
+pnpm --filter @workspace/prisma run generate
+pnpm --filter @workspace/prisma run push
+# Run seed:
+/home/runner/workspace/artifacts/api-server/node_modules/.bin/ts-node --transpile-only lib/prisma/prisma/seed.ts
+```
 
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
+## Environment Variables
+- `DATABASE_URL` — auto-provisioned in Replit dev
+- `SUPABASE_AUTH_ENFORCE` — set to "true" to enforce JWT auth; omit/false for dev passthrough
+- `PORT` — injected by artifact runner
 
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
+## API Documentation
+Swagger UI: `http://localhost:8080/api/docs`
+OpenAPI JSON: `http://localhost:8080/api/docs-json`
 
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
-
-### `lib/api-spec` (`@workspace/api-spec`)
-
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
-
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
-
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
-
-### `lib/api-zod` (`@workspace/api-zod`)
-
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
-
-### `lib/api-client-react` (`@workspace/api-client-react`)
-
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
-
-### `scripts` (`@workspace/scripts`)
-
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+## Build Status — COMPLETE
+- [x] Phase 1 — Foundation: lib/prisma, NestJS api-server, 19 modules, auth guards, seed data
+- [x] Phase 2 — Domain Modules: RuleEngineService, break proposal algorithm, Tadpoles parser, exports, audit, coverage
+- [x] Phase 3 — Frontend Dashboard: Staffing Board, Break Planner, Attendance Import, Admin Settings — all e2e tested and passing

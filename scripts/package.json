@@ -2,13 +2,18 @@
   "name": "@workspace/scripts",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
-    "hello": "tsx ./src/hello.ts",
+    "hello": "ts-node ./src/hello.ts",
+    "seed": "ts-node --project tsconfig.json ./src/seed.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@workspace/prisma": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "tsx": "catalog:"
+    "ts-node": "^10.9.2",
+    "typescript": "~5.9.2"
   }
 }

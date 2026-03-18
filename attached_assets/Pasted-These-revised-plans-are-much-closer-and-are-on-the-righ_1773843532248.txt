@@ -1,0 +1,40 @@
+These revised plans are much closer and are on the right track. Before I approve them, make the following targeted corrections:
+
+1. Preserve the original required backend domain/module contract from the master prompt.
+If implementation module names differ (for example rooms vs classrooms, breaks vs break-plans, coverage vs coverage-assignments, rules vs rule-engine, audit vs audit-events), explicitly document the mapping from implementation modules to the original required modules. Do not let the architecture drift away from the original domain language.
+
+2. Use Classroom as the domain entity name instead of Room in the Prisma/domain model, unless there is a compelling technical reason not to. The business language in this product is Classroom.
+
+3. Restore the missing required modules as scaffolds in Phase 1 even if their logic is minimal:
+- users
+- roles
+- attendance-imports
+- break-plans
+- coverage-assignments
+- rule-engine
+- audit-events
+- jobs
+- admin
+
+You may internally organize them cleanly, but the repo structure and documentation must still reflect the required architecture from the master prompt.
+
+4. Clarify the Role model explicitly.
+My original prompt listed Role as a core entity and listed these system roles:
+- Platform Admin
+- Organization Admin
+- Location Admin
+- Supervisor / Scheduler
+- Read-Only Viewer
+
+Document exactly how Role is represented in the schema and authorization layer. Do not reduce this to an ambiguous enum setup without explanation.
+
+5. Keep Orval optional only.
+It may be used as a convenience to generate frontend API clients from NestJS Swagger/OpenAPI output, but it is not part of the required stack and must not drive architecture decisions.
+
+6. In the frontend plan, keep auth UI minimal.
+I want auth/session foundations in place, but I do not want time spent on overbuilt auth UX before the board/snapshot/break flow works.
+
+7. Add the jobs scaffold now, but keep BullMQ/Redis operational behavior postponed.
+I want the module and structure present in Phase 1 even if queue execution is deferred.
+
+Once those corrections are applied, show me the updated summaries and I should be ready to approve.

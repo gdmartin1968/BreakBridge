@@ -1,0 +1,14 @@
+packages:
+  "date-fns": "For formatting dates and times in the break planner"
+  "framer-motion": "For smooth layout animations and presence transitions"
+  "clsx": "Utility for constructing className strings conditionally"
+  "tailwind-merge": "Utility to merge tailwind classes without style conflicts"
+  "react-hook-form": "For form state management in admin settings"
+  "@hookform/resolvers": "For Zod validation with react-hook-form"
+
+images: []
+
+notes:
+  - "The app defaults to a dark mode aesthetic for an operational dashboard feel."
+  - "API calls are made relatively to /api, assuming the frontend is served on the same origin or proxied in development."
+  - "Auth is assumed to be handled via cookies/passthrough in dev (SUPABASE_AUTH_ENFORCE=false)."
