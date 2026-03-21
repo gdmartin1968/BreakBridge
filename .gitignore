@@ -1,18 +1,43 @@
-# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+# =========================
+# ENV / SECRETS (CRITICAL)
+# =========================
+.env
+.env.*
+!.env.example
 
-# compiled output
-dist
-tmp
-out-tsc
+# =========================
+# NODE / BUILD OUTPUT
+# =========================
+node_modules/
+dist/
+build/
+out-tsc/
 *.tsbuildinfo
-.expo
-.expo-shared
 
-# dependencies
-node_modules
+# =========================
+# CACHE / TEMP
+# =========================
+.cache/
+.local/
+tmp/
+coverage/
+.sass-cache/
+connect.lock
+libpeerconnection.log
+npm-debug.log*
+yarn-error.log*
+testem.log
 
-# IDEs and editors
-/.idea
+# =========================
+# IDE / EDITORS
+# =========================
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+.idea/
 .project
 .classpath
 .c9/
@@ -20,30 +45,32 @@ node_modules
 .settings/
 *.sublime-workspace
 
-# IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-
-# misc
-/.sass-cache
-/connect.lock
-/coverage
-/libpeerconnection.log
-npm-debug.log
-yarn-error.log
-testem.log
-/typings
-
-# System Files
+# =========================
+# SYSTEM FILES
+# =========================
 .DS_Store
 Thumbs.db
 
+# =========================
+# REPLIT / GENERATED
+# =========================
+.replit-artifact/
+.replit
+.replitignore
+
+# =========================
+# GENERATED CODE (PRISMA)
+# =========================
+lib/prisma/src/generated/client/
+
+# =========================
+# PROJECT CLEANUP
+# =========================
+attached_assets/
+file tree
+
+# =========================
+# MISC
+# =========================
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
-
-# Replit
-.cache/
-.local/
